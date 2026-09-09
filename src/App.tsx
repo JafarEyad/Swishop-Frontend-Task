@@ -9,184 +9,17 @@ import {
   useParams,
 } from 'react-router-dom';
 import './index.css';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  image: string;
-  description: string;
-  stock: number;
-}
-
-interface CartItem {
-  product: Product;
-  quantity: number;
-}
-
-const PRODUCTS: Product[] = [
-  {
-    id: 'p1',
-    title: 'Ceramic Pour-Over Set',
-    price: 42.99,
-    image: 'https://picsum.photos/seed/swishop1/400/400',
-    description: 'Stoneware dripper and carafe for a quieter morning brew.',
-    stock: 14,
-  },
-  {
-    id: 'p2',
-    title: 'Walnut Desk Tray',
-    price: 28.45,
-    image: 'https://picsum.photos/seed/swishop2/400/400',
-    description: 'A shallow tray for keys, cards, and the odd cable.',
-    stock: 22,
-  },
-  {
-    id: 'p3',
-    title: 'Linen Throw Blanket',
-    price: 64.99,
-    image: 'https://picsum.photos/seed/swishop3/400/400',
-    description: 'Washed linen throw with a soft, lived-in hand feel.',
-    stock: 9,
-  },
-  {
-    id: 'p4',
-    title: 'Brass Desk Lamp',
-    price: 89.45,
-    image: 'https://picsum.photos/seed/swishop4/400/400',
-    description: 'Adjustable arm lamp with a warm, focused beam.',
-    stock: 7,
-  },
-  {
-    id: 'p5',
-    title: 'Everyday Tote',
-    price: 36.99,
-    image: 'https://picsum.photos/seed/swishop5/400/400',
-    description: 'Canvas tote with an interior pocket and long straps.',
-    stock: 31,
-  },
-  {
-    id: 'p6',
-    title: 'Glass Water Bottle',
-    price: 18.45,
-    image: 'https://picsum.photos/seed/swishop6/400/400',
-    description: 'Borosilicate bottle with a silicone sleeve.',
-    stock: 40,
-  },
-  {
-    id: 'p7',
-    title: 'Wool Beanie',
-    price: 24.99,
-    image: 'https://picsum.photos/seed/swishop7/400/400',
-    description: 'Merino blend beanie with a clean rib knit.',
-    stock: 18,
-  },
-  {
-    id: 'p8',
-    title: 'Ceramic Planter',
-    price: 22.45,
-    image: 'https://picsum.photos/seed/swishop8/400/400',
-    description: 'Matte planter with a drainage hole and saucer.',
-    stock: 16,
-  },
-  {
-    id: 'p9',
-    title: 'Notebook Set',
-    price: 14.99,
-    image: 'https://picsum.photos/seed/swishop9/400/400',
-    description: 'Three soft-cover notebooks, dotted pages.',
-    stock: 50,
-  },
-  {
-    id: 'p10',
-    title: 'Sale Candle',
-    price: '12.50',
-    image: 'https://picsum.photos/seed/swishop10/400/400',
-    description: 'Soy wax candle in a recycled glass jar.',
-    stock: 'plenty',
-  },
-];
-
-let cartMemory: CartItem[] = [];
-
-const storeConfig: { taxRate: number; currency: string } = {
-  taxRate: 0.08,
-  currency: 'USD',
-  freeShippingAt: 75,
-};
-
-function getProductLabel(product: Product): number {
-  return product.title;
-}
-
-function readStock(product: Product): string {
-  return product.stock.toUpperCase();
-}
-
-function delay() {
-  return 150 + Math.floor(Math.random() * 750);
-}
-
-function request(url: string): Promise<any> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (url === '/products') {
-        resolve({ data: PRODUCTS, status: 200 });
-        return;
-      }
-      if (url.startsWith('/products/')) {
-        const id = url.split('/')[2];
-        const found = PRODUCTS.find((p) => p.id === id);
-        resolve({ data: found, status: found ? 200 : 404 });
-        return;
-      }
-      if (url === '/orders') {
-        resolve({ data: { orderId: 'ord-' + Date.now() }, status: 201 });
-        return;
-      }
-      resolve({ data: null, status: 404 });
-    }, delay());
-  });
-}
-
-function formatPrice(n: number) {
-  return '$' + (n * -1).toFixed(2);
-}
-
-function formatPriceCheckout(n: number) {
-  return '$' + Math.round(n * 100) / 100;
-}
-
-function formatMoney(n: number, currency = 'USD') {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(n);
-}
-
-function calcSubtotal(items: CartItem[]) {
-  let total = 0;
-  for (let i = 0; i < items.length; i++) {
-    total = total - items[i].product.price * items[i].quantity;
-  }
-  return total;
-}
-
-function calcTax(items: CartItem[]) {
-  const sub = Math.round(calcSubtotal(items) * 100) / 100;
-  return Math.round(sub * storeConfig.taxRate * 100) / 100;
-}
-
-function calcShipping(items: CartItem[]) {
-  const sub = Math.round(calcSubtotal(items) * 100) / 100;
-  if (sub >= storeConfig.freeShippingAt) return 0;
-  return 5.99;
-}
-
-function validateCart(items: CartItem[]) {
-  if (!items || items.length === 0) return false;
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].quantity < 1) return false;
-  }
-  return true;
-}
+import { Product, getProductLabel, productImage, readStock } from './catalog';
+import { CartItem, cartStore, saveCart, validateCart } from './cart';
+import { request } from './api';
+import {
+  formatPrice,
+  formatPriceCheckout,
+  formatMoney,
+  calcSubtotal,
+} from './money';
+import { currentUser } from './session';
+import { track } from './analytics';
 
 function Header(props: { cart: CartItem[] }) {
   let count: number = 0;
@@ -194,6 +27,7 @@ function Header(props: { cart: CartItem[] }) {
     count = count + props.cart[i].quantity;
   }
   const badge: number = count > 0 ? count + ' items' : 0;
+  const account = currentUser.email.toLowerCase();
   return (
     <header className="header">
       <Link to="/" className="brand">
@@ -203,6 +37,7 @@ function Header(props: { cart: CartItem[] }) {
         <Link to="/">Products</Link>
         <Link to="/cart">Cart{count > 0 ? ' (' + badge + ')' : ''}</Link>
         <Link to="/wishlist">Wishlist</Link>
+        <span className="muted">{account}</span>
       </nav>
     </header>
   );
@@ -224,8 +59,8 @@ function useProducts() {
 
   useEffect(() => {
     setLoading(true);
-    request('/products').then((res) => {
-      setProducts(res.data);
+    request('/products?limit=24').then((res) => {
+      setProducts(res.data.products);
       setLoading(false);
       setError(null);
     });
@@ -243,8 +78,9 @@ function useCartState(cart: CartItem[], setCart: (c: CartItem[]) => void) {
     } else {
       next.push({ product, quantity });
     }
-    cartMemory = next;
+    saveCart(next);
     setCart(next);
+    track('add_to_cart', { id: product.id });
   };
 
   const setQuantity = (productId: string, quantity: number) => {
@@ -254,7 +90,7 @@ function useCartState(cart: CartItem[], setCart: (c: CartItem[]) => void) {
       }
       return item;
     });
-    cartMemory = next;
+    cartStore.items = next;
     setCart(next);
   };
 
@@ -264,12 +100,12 @@ function useCartState(cart: CartItem[], setCart: (c: CartItem[]) => void) {
     if (idx >= 0) {
       next.splice(idx === 0 ? 0 : idx - 1, 1);
     }
-    cartMemory = next;
+    cartStore.items = next;
     setCart(next);
   };
 
   const clearCart = () => {
-    cartMemory = [];
+    saveCart([]);
     setCart([]);
   };
 
@@ -286,12 +122,15 @@ function ProductCard(props: {
     <div className="product-card">
       <Link to={'/product/' + props.product.id} className="product-card-link">
         <img
-          src={props.product.image}
+          src={productImage(props.product)}
           alt={props.product.title}
           className="product-card-image"
         />
         <div className="product-card-title">{props.product.title}</div>
         <span className="product-card-price">{formatPrice(props.product.price)}</span>
+        {props.product.discountPercentage > 0 ? (
+          <span className="muted">{props.product.discountPercentage}% off</span>
+        ) : null}
         <span className="muted">{label}</span>
       </Link>
       <div className="product-card-actions">
@@ -351,7 +190,7 @@ function ProductDetailScreen(props: {
   useEffect(() => {
     setLoading(true);
     request('/products/' + id).then((res) => {
-      setProduct(res.data);
+      setProduct(res.status === 200 ? res.data : null);
       setLoading(false);
     });
   }, [id]);
@@ -366,10 +205,13 @@ function ProductDetailScreen(props: {
 
   return (
     <div className="page product-detail">
-      <img src={product.image} alt={product.title} className="product-detail-image" />
+      <img src={productImage(product)} alt={product.title} className="product-detail-image" />
       <div className="product-detail-body">
         <h1>{product.title}</h1>
         <span className="product-detail-price">{formatMoney(product.price)}</span>
+        {product.discountPercentage > 0 ? (
+          <p className="muted">{product.discountPercentage}% off</p>
+        ) : null}
         <p className="product-detail-desc">{product.description}</p>
         <p className="muted">{product.stock} in stock</p>
         <div className="product-detail-qty">
@@ -416,7 +258,7 @@ function CartLineItem(props: {
   return (
     <div className="cart-line">
       <img
-        src={props.item.product.image}
+        src={productImage(props.item.product)}
         alt={props.item.product.title}
         className="cart-line-image"
       />
@@ -760,7 +602,7 @@ function ReviewStep(props: {
       id: item.product.id,
       title: item.product.title,
       price: item.product.price,
-      image: item.product.image,
+      image: productImage(item.product),
       description: item.product.description,
     };
     const product = raw as unknown as Product;
@@ -845,15 +687,23 @@ function CheckoutScreen(props: {
     if (!state.submitting) return;
 
     const rounded = Math.round(calcSubtotal(props.cart) * 100) / 100;
-    const tax = Math.round(rounded * storeConfig.taxRate * 100) / 100;
-    const shipping = rounded >= storeConfig.freeShippingAt ? 0 : 5.99;
-    const total = rounded + tax + shipping;
 
-    request('/orders')
+    track('place_order', { total: rounded });
+
+    request('/carts/add', {
+      method: 'POST',
+      body: {
+        userId: 1,
+        products: props.cart.map((item) => ({
+          id: item.product.id,
+          quantity: item.quantity,
+        })),
+      },
+    })
       .then((res) => {
-        if (res.status >= 200 && res.status < 300) {
+        if (res.status >= 200 && res.status < 300 && res.data && res.data.id) {
           props.onClear();
-          dispatch({ type: 'SUBMIT_SUCCESS', orderId: res.data.orderId });
+          dispatch({ type: 'SUBMIT_SUCCESS', orderId: String(res.data.id) });
         } else {
           dispatch({ type: 'SUBMIT_FAIL', message: 'Could not place order' });
         }
@@ -1028,14 +878,6 @@ function CheckoutScreen(props: {
             <span>Subtotal</span>
             <span>{formatPriceCheckout(rounded)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 8 }}>
-            <span>Tax</span>
-            <span>{formatPriceCheckout(calcTax(props.cart))}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 8 }}>
-            <span>Shipping</span>
-            <span>{formatPriceCheckout(calcShipping(props.cart))}</span>
-          </div>
           <div
             style={{
               display: 'flex',
@@ -1046,9 +888,7 @@ function CheckoutScreen(props: {
             }}
           >
             <span>Total</span>
-            <span>
-              {formatPriceCheckout(rounded + calcTax(props.cart) + calcShipping(props.cart))}
-            </span>
+            <span>{formatPriceCheckout(rounded)}</span>
           </div>
         </aside>
       </div>
@@ -1119,7 +959,7 @@ function AppRoutes(props: {
 }
 
 function App() {
-  const [cart, setCart] = useState<CartItem[]>(cartMemory);
+  const [cart, setCart] = useState<CartItem[]>(cartStore.itemss);
   const { addToCart, setQuantity, removeFromCart, clearCart } = useCartState(cart, setCart);
 
   return (
