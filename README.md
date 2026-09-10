@@ -1,6 +1,6 @@
 # SwiShop
 
-> **Candidates:** the assignment is in [`task-requirements/TASK.md`](task-requirements/TASK.md). You have **3 days**. Fork this repository, then replace this README with your own as described there.
+> **Candidates:** read [`task-requirements/TASK.md`](task-requirements/TASK.md) before you start — that is the assignment, including **what we do not expect**. Same brief: [`task-requirements/Swibit Frontend Engineer Task.docx.md`](task-requirements/Swibit%20Frontend%20Engineer%20Task.docx.md). API: [`task-requirements/API.md`](task-requirements/API.md). **3 days** from the invitation, **11:59 PM (GMT+3)**. Fork this repository, then replace this README with your own as described in the task.
 
 ## Requirements
 
